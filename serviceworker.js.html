@@ -1,0 +1,37 @@
+<script>
+  const CACHE_NAME = 'vistoria-cache-v1';
+  // Lista de URLs para fazer cache. Inclui a página principal e as duas vistorias.
+  const urlsToCache = [
+    '<?= webAppUrl ?>',
+    '<?= webAppUrl ?>?page=vistoriaExterna.html',
+    '<?= webAppUrl ?>?page=vistoriaAcesso.html'
+  ];
+
+  // Evento de Instalação: Abre o cache e adiciona os arquivos principais.
+  self.addEventListener('install', event => {
+    event.waitUntil(
+      caches.open(CACHE_NAME)
+        .then(cache => {
+          console.log('Cache aberto');
+          return cache.addAll(urlsToCache);
+        })
+    );
+  });
+
+  // Evento de Fetch: Intercepta as requisições.
+  self.addEventListener('fetch', event => {
+    event.respondWith(
+      // Tenta encontrar a resposta no cache.
+      caches.match(event.request)
+        .then(response => {
+          // Se encontrar no cache, retorna a resposta do cache.
+          if (response) {
+            return response;
+          }
+          // Se não, faz a requisição à rede.
+          return fetch(event.request);
+        }
+      )
+    );
+  });
+</script>

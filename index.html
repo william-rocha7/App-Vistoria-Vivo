@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+    <title>Vistoria de RE | Vivo</title>
+    
+    <meta name="theme-color" content="#660099">
+    <link rel="manifest" href="<?= webAppUrl ?>?path=manifest.json">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --vivo-purple: #660099;
+            --vivo-purple-light: #8e24aa;
+            --background-color: #f8f7fa;
+            --text-dark: #1e293b;
+            --text-light: #526071;
+            --white: #ffffff;
+            --shadow-color: rgba(102, 0, 153, 0.15);
+            --scale-factor: 1.5; /* Fator de escala de 50% */
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        html, body { height: 100%; width: 100%; overflow: hidden; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            height: 100%;
+            padding: calc(2rem * var(--scale-factor)) calc(1.5rem * var(--scale-factor));
+            opacity: 0;
+            animation: fadeIn 0.7s ease-out forwards;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: center;
+            text-align: center;
+        }
+        .main-content { width: 100%; max-width: calc(500px * var(--scale-factor)); }
+        h1 { font-size: clamp(calc(2.8rem * var(--scale-factor)), 10vw, calc(3.5rem * var(--scale-factor))); font-weight: 800; line-height: 1.1; color: var(--vivo-purple); margin-bottom: calc(0.75rem * var(--scale-factor)); }
+        .sub-headline { font-size: clamp(calc(1.5rem * var(--scale-factor)), 7vw, calc(2rem * var(--scale-factor))); font-weight: 700; color: var(--text-dark); margin-bottom: calc(2rem * var(--scale-factor)); }
+        p.welcome-text { font-size: calc(1.2rem * var(--scale-factor)); color: var(--text-light); line-height: 1.6; margin: 0 auto calc(3rem * var(--scale-factor)) auto; max-width: calc(450px * var(--scale-factor)); }
+        .btn-group { display: flex; flex-direction: column; gap: calc(2rem * var(--scale-factor)); width: 100%; }
+        .btn { display: flex; align-items: center; justify-content: center; gap: calc(1rem * var(--scale-factor)); width: 100%; padding: calc(1.8rem * var(--scale-factor)) calc(1.5rem * var(--scale-factor)); font-size: calc(1.3rem * var(--scale-factor)); font-weight: 700; color: var(--white); background: linear-gradient(135deg, var(--vivo-purple) 0%, var(--vivo-purple-light) 100%); border: none; border-radius: calc(1.2rem * var(--scale-factor)); cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; box-shadow: 0 8px 25px -5px var(--shadow-color); user-select: none; text-decoration: none; }
+        .btn svg { width: calc(32px * var(--scale-factor)); height: calc(32px * var(--scale-factor)); flex-shrink: 0; }
+        .btn:hover { transform: translateY(-4px); box-shadow: 0 12px 30px -5px rgba(102, 0, 153, 0.3); }
+        .btn:active { transform: translateY(-1px) scale(0.98); }
+        @keyframes fadeIn { to { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header></header>
+        <div class="main-content">
+            <h1>Plataforma de Vistoria</h1>
+            <h2 class="sub-headline">Rede Externa</h2>
+            <p class="welcome-text">Seja bem-vindo. Escolha uma das opções abaixo para iniciar o processo.</p>
+            <div class="btn-group">
+                <a class="btn" href="<?= webAppUrl ?>?page=vistoriaExterna.html">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path><path d="M12 2L2 7l10 5 10-5L12 2z"></path></svg>
+                    <span>Rede Externa</span>
+                </a>
+                <a class="btn" href="<?= webAppUrl ?>?page=vistoriaAcesso.html">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 10.5L20 6"></path><path d="M4 12V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8"></path><path d="M4 20h16"></path><circle cx="6.5" cy="15.5" r="2.5"></circle><circle cx="17.5" cy="15.5" r="2.5"></circle></svg>
+                    <span>Acesso</span>
+                </a>
+            </div>
+        </div>
+        <footer></footer>
+    </div>
+
+    <script>
+        window.addEventListener('load', () => {
+          if ('serviceWorker' in navigator) {
+            const webAppUrl = '<?= webAppUrl ?>';
+            if (webAppUrl) {
+                navigator.serviceWorker.register(webAppUrl + '?path=serviceworker.js')
+                  .then(reg => console.log('Service Worker registado com sucesso:', reg))
+                  .catch(err => console.error('Falha ao registar Service Worker:', err));
+            }
+          }
+        });
+    </script>
+</body>
+</html>

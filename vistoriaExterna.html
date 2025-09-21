@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vistoria de Rede Externa</title>
+
+  <?!= HtmlService.createHtmlOutputFromFile('stylesheet').getContent(); ?>
+  
+  <style>
+    .rede-metalica-options { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; justify-content: center; width: 100%; }
+    @media (min-width: 480px) { .rede-metalica-options { flex-direction: row; } }
+    .rede-metalica-options .option-btn { flex: 1; display: flex; align-items: center; justify-content: center; padding: 1.25rem; background: #f0eff5; border: 3px solid var(--vivo-purple); border-radius: 1rem; cursor: pointer; transition: background 0.2s, border-color 0.2s; font-size: 1rem; font-weight: 600; }
+    .rede-metalica-options input { margin-right: 0.75rem; width: 1.5rem; height: 1.5rem; accent-color: var(--vivo-purple); }
+    .coords-display { margin-top: 1.5rem; padding: 1.25rem; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 1rem; width: 100%; text-align: center; font-size: 0.9rem; color: #495057; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Vistoria de Rede Externa</h2>
+    
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+        <span id="progressText" class="progress-text"></span>
+    </div>
+
+    <form id="vistoriaForm" onsubmit="handleFormSubmit(event)">
+      <input type="hidden" name="formType" value="vistoriaExterna">
+      
+      <div id="etapa1" class="etapa active">
+        <label>Defina a Rota do Dia</label>
+        <div class="btn-group" style="flex-direction: row; padding-top: 0;">
+          <input type="text" id="pontaA" name="pontaA" placeholder="Ponta A" required maxlength="3" style="text-transform: uppercase;">
+          <input type="text" id="pontaB" name="pontaB" placeholder="Ponta B" required maxlength="3" style="text-transform: uppercase;">
+        </div>
+        <label for="gestorSelect">Seu Gestor Direto</label>
+        <select id="gestorSelect" name="gestor" required onchange="populaTecnicos()">
+          <option value="" disabled selected>Selecione o Gestor…</option>
+          <option>Cleber Amaral</option>
+          <option>Rômulo Sucupira</option>
+          <option>Everton Furtado</option>
+          <option>Geraldo Magela Bonfim</option>
+        </select>
+        <label for="tecnicoSelect">Seu Nome</label>
+        <select id="tecnicoSelect" name="nomeTecnico" required>
+          <option value="" disabled selected>Escolha o Gestor primeiro…</option>
+        </select>
+        <button type="button" class="btn" onclick="proximaEtapa(2)">Começar</button>
+      </div>
+      
+      <div id="etapa2" class="etapa">
+        <label for="tipoDesvio">Tipo de Desvio</label>
+        <select id="tipoDesvio" name="tipoDesvio" required onchange="populaSub()">
+          <option value="" disabled selected>Selecione…</option>
+          <option>Poste</option>
+          <option>Meio de Vão</option>
+          <option>Carga Alta</option>
+          <option>Degradação</option>
+        </select>
+        <label for="subDesvio">Sub-Desvio</label>
+        <select id="subDesvio" name="subDesvio" required onchange="toggleDetalheDegradacao()">
+          <option value="" disabled selected>Selecione o tipo primeiro…</option>
+        </select>
+        <div id="detalheDegradacaoContainer" style="display:none; width: 100%;"><label for="detalheDegradacao">Detalhe da Degradação</label><select id="detalheDegradacao" name="detalheDegradacao"><option value="" disabled selected>Selecione o detalhe...</option></select></div>
+        <label>Evidência do Desvio (1-2 fotos)</label>
+        <input type="file" name="foto_desvio_1" accept="image/*" required>
+        <input type="file" name="foto_desvio_2" accept="image/*">
+        <div class="btn-group"><button type="button" class="btn" onclick="proximaEtapa(1)">Voltar</button><button type="button" class="btn" onclick="proximaEtapa(3)">Próximo</button></div>
+      </div>
+      
+      <div id="etapa3" class="etapa">
+        <label for="observacaoOutroDesvio">Descreva se observou algum outro desvio.</label>
+        <textarea id="observacaoOutroDesvio" name="observacaoOutroDesvio"></textarea>
+        <label>Evidência da Observação (Opcional, 1-2 fotos)</label>
+        <input type="file" name="foto_obs_1" accept="image/*"><input type="file" name="foto_obs_2" accept="image/*">
+        <div class="btn-group"><button type="button" class="btn" onclick="proximaEtapa(2)">Voltar</button><button type="button" class="btn" onclick="proximaEtapa(4)">Próximo</button></div>
+      </div>
+      
+      <div id="etapa4" class="etapa">
+        <label>Rede Metálica Vivo?</label>
+        <div class="rede-metalica-options"><label class="option-btn"><input type="radio" name="redeMetalica" value="Não" required> Não</label><label class="option-btn"><input type="radio" name="redeMetalica" value="Sim"> Sim</label></div>
+        <div class="btn-group"><button type="button" class="btn" onclick="proximaEtapa(3)">Voltar</button><button type="button" class="btn" onclick="proximaEtapa(5)">Próximo</button></div>
+      </div>
+
+      <div id="etapa5" class="etapa">
+        <label>Localização <span style="color:var(--red-error)">*</span></label>
+        <button type="button" class="btn" id="btnCapturar" onclick="capturarEndereco()">📍 Capturar Coordenadas</button>
+        <div id="coords-display" class="coords-display" style="display: none;"><span id="displayLatitude"></span><br><span id="displayLongitude"></span></div>
+        <input type="hidden" id="latitude" name="latitude" required><input type="hidden" id="longitude" name="longitude" required><input type="hidden" id="endereco" name="endereco">
+        <div class="btn-group"><button type="button" class="btn" onclick="proximaEtapa(4)">Voltar</button><button type="button" class="btn" id="btnProximaEtapa5" onclick="proximaEtapa(6)" disabled>Próximo</button></div>
+      </div>
+      
+      <div id="etapa6" class="etapa">
+        <h2>Revisão Final</h2>
+        <div id="resumo" style="width: 100%;"></div>
+        <div class="btn-group"><button type="button" class="btn" onclick="proximaEtapa(5)">Voltar</button><button type="submit" class="btn" id="btnEnviar">Confirmar e Enviar</button></div>
+        <div id="statusMessage" class="status-message"></div>
+      </div>
+    </form>
+  </div>
+
+  <?!= HtmlService.createHtmlOutputFromFile('javascript').getContent(); ?>
+
+  <script>
+    const totalEtapas = 6;
+    const gestores = {'Cleber Amaral':['Hestevão','Wagner','Fábio','Hebert Martins','Michael','Nilton','Almerindo','Felipe','Walmir','Rodney','William'],'Rômulo Sucupira':['Vanessa'],'Everton Furtado':['Alysson','Tadeu','Otávio','Leandro','Heynenciser','Luan'], 'Geraldo Magela Bonfim': ['Edelson', 'Geraldo Magela']};
+    const mapa = {'Poste':['Falta Equipagem','Cabo não ancorado','Cabo sem identificação','Troca de Poste "Ação Cemig"'],'Meio de Vão':['Cx. emenda sem ancoragem','Reserva Técnica sem ancoragem','Instalar PEAD','Raquete Quebrada','Simular Raquete','Manutenção de PEAD'],'Carga Alta':['Travessia','Alteamento','Tensionamento','Entrada e Saída de Veículos de Carga Alta'],'Degradação':['Vistoria de Cx. de Abordagem','Vistoria de Cx. de Travessia']};
+    const mapaDegradacao = ['Fibras mal acomodadas na bandeja','esqueleto danificado','Manta sem queimar','Recuo do Cb','Anel de Vedação Quebrado','Sem Borracha de Vedação'];
+    function atualizarProgresso(e){const t=((e-1)/(totalEtapas-1))*100;document.getElementById("progressBar").style.width=t+"%",document.getElementById("progressText").textContent=`Etapa ${e} de ${totalEtapas}`}
+    function proximaEtapa(e){const t=document.querySelector(".etapa.active");if(validarEtapa(t)){"etapa1"===t.id&&(localStorage.setItem("savedPontaA",document.getElementById("pontaA").value.toUpperCase()),localStorage.setItem("savedPontaB",document.getElementById("pontaB").value.toUpperCase())),document.querySelectorAll(".etapa").forEach(e=>e.classList.remove("active")),document.getElementById("etapa"+e).classList.add("active"),window.scrollTo(0,0),atualizarProgresso(e),e===totalEtapas&&(mostraResumo(),document.getElementById("btnEnviar").disabled=!1)}}
+    function populaSub(){const e=document.getElementById("tipoDesvio").value;popularSelect("subDesvio",mapa[e]||[],"Selecione..."),toggleDetalheDegradacao()}
+    function toggleDetalheDegradacao(){const e=document.getElementById("subDesvio").value,t=document.getElementById("detalheDegradacaoContainer"),o=document.getElementById("detalheDegradacao");e.includes("Vistoria de Cx.")?(popularSelect("detalheDegradacao",mapaDegradacao,"Selecione o detalhe..."),t.style.display="block",o.required=!0):(t.style.display="none",o.required=!1,o.value="")}
+    function mostraResumo(){const e=new FormData(document.getElementById("vistoriaForm"));let t=[];const o={pontaA:"Ponta A",pontaB:"Ponta B",gestor:"Gestor",nomeTecnico:"Técnico",tipoDesvio:"Tipo de Desvio",subDesvio:"Sub-Desvio",detalheDegradacao:"Detalhe Degradação",redeMetalica:"Rede Metálica",latitude:"Latitude",longitude:"Longitude",endereco:"Endereço",observacaoOutroDesvio:"Observação Adicional"};for(let[s,a]of Object.entries(o)){const o=e.get(s);o&&t.push(`<p><b>${a}:</b> ${o}</p>`)}const s=Array.from(document.querySelectorAll('input[type="file"]')).filter(e=>e.files.length>0);s.length>0&&t.push(`<p><b>Total de Fotos:</b> ${s.length}</p>`),document.getElementById("resumo").innerHTML=t.join("")}
+    function capturarEndereco(){if(!navigator.geolocation)return void showStatus("Geolocalização não é suportada.","error");const e=document.getElementById("btnCapturar"),t=document.getElementById("btnProximaEtapa5"),o=document.getElementById("displayLatitude"),s=document.getElementById("displayLongitude"),a=document.getElementById("coords-display");e.disabled=!0,t.disabled=!0,e.textContent="A capturar...",showStatus("A obter localização...","loading",!0),navigator.geolocation.getCurrentPosition(n=>{const r=n.coords.latitude,c=n.coords.longitude;document.getElementById("latitude").value=r.toFixed(7),document.getElementById("longitude").value=c.toFixed(7),document.getElementById("endereco").value=`Coords: ${r.toFixed(6)}, ${c.toFixed(6)}`,o.textContent=`Latitude: ${r.toFixed(7)}`,s.textContent=`Longitude: ${c.toFixed(7)}`,a.style.display="block",t.disabled=!1,e.textContent="📍 Coordenadas Capturadas!",showStatus("Coordenadas obtidas!","success"),e.disabled=!1},o=>{let s="Erro desconhecido.";1===o.code&&(s="Permissão de localização negada."),2===o.code&&(s="Localização indisponível."),3===o.code&&(s="A requisição demorou."),showStatus(s,"error"),e.textContent="📍 Tentar Novamente",e.disabled=!1,t.disabled=!0},{enableHighAccuracy:!0,timeout:15e3,maximumAge:0})}
+    window.addEventListener("load",()=>{const e=localStorage.getItem("savedPontaA"),t=localStorage.getItem("savedPontaB");e&&(document.getElementById("pontaA").value=e),t&&(document.getElementById("pontaB").value=t),atualizarProgresso(1)});
+  </script>
+  
+  <div id="successOverlay" class="success-overlay">
+    <svg class="success-checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+      <circle cx="26" cy="26" r="25" fill="none" stroke="var(--green-success)" stroke-width="4"/>
+      <path fill="none" stroke="var(--green-success)" stroke-width="5" stroke-linecap="round" d="M14 27l8 8 16-16"/>
+    </svg>
+    <h1>Vistoria Enviada!</h1>
+    <p>Obrigado pela sua colaboração.</p>
+    <button class="btn" onclick="window.location.href = '<?= webAppUrl ?>'">Recomeçar</button>
+  </div>
+</body>
+</html>

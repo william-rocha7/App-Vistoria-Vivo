@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vistoria de Acesso</title>
+
+  <?!= HtmlService.createHtmlOutputFromFile('stylesheet').getContent(); ?>
+  
+  <style>
+    /* Estilos específicos para esta página */
+    .option-group { display: flex; flex-direction: column; gap: 1rem; width: 100%; margin-top: 1rem; }
+    .option-group label { display: flex; align-items: center; padding: 1.5rem; background: #f8fafc; border: 3px solid var(--border-color); border-radius: 1.2rem; cursor: pointer; font-weight: 500; text-align: left; margin-top: 0; transition: background 0.2s, border-color 0.2s; font-size: 1.2rem; }
+    .option-group label:has(input:checked) { background: #f0e6f7; border-color: var(--vivo-purple-light); }
+    .option-group input[type="radio"], .option-group input[type="checkbox"] { margin-right: 1.2rem; width: 1.5rem; height: 1.5rem; accent-color: var(--vivo-purple); }
+    .info-aviso { padding: 1.2rem; background-color: rgba(102, 0, 153, 0.05); color: var(--text-color); border-radius: 1rem; text-align: left; margin-bottom: 1.5rem; font-size: 1.1rem; line-height: 1.5; border-left: 5px solid var(--vivo-purple); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Vistoria de Acesso</h2>
+    
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+        <span id="progressText" class="progress-text"></span>
+    </div>
+
+    <form id="vistoriaForm" onsubmit="handleFormSubmit(event)">
+      <input type="hidden" name="formType" value="vistoriaAcesso">
+
+      <div id="etapa1" class="etapa active">
+        <label for="cidade">Cidade</label>
+        <select id="cidade" name="cidade" required><option value="" disabled selected>Selecione a cidade...</option><option>Região Metropolitana de BH</option><option>Sete Lagoas</option><option>Uberaba</option><option>Uberlândia</option><option>Juiz de Fora</option><option>Governador Valadares</option></select>
+        <label for="site">Site (3 caracteres)</label>
+        <input type="text" id="site" name="site" maxlength="3" required style="text-transform: uppercase;">
+        <div class="btn-group"><button type="button" class="btn" onclick="proximaEtapa(2)">Próximo</button></div>
+      </div>
+
+      <div id="etapa2" class="etapa">
+        <label>Recebeu a topologia e/ou facilidade?</label>
+        <div class="option-group"><label><input type="radio" name="topologia" value="Sim" required> Sim</label><label><input type="radio" name="topologia" value="Não"> Não</label></div>
+        <label>Quantos cabos estão saindo?</label>
+        <div class="option-group" onchange="renderizarCabos()"><label><input type="radio" name="qtdCabos" value="1" required> 1 (Única)</label><label><input type="radio" name="qtdCabos" value="2"> 2 (Dupla)</label><label><input type="radio" name="qtdCabos" value="3"> 3 (Tripla)</label></div>
+        <div id="cabosContainer" style="width: 100%; margin-top: 1rem;"></div>
+        <div class="btn-group"><button type="button" class="btn" onclick="proximaEtapa(1)">Voltar</button><button type="button" class="btn" onclick="proximaEtapa(3)">Próximo</button></div>
+      </div>
+
+      <div id="etapa3" class="etapa">
+        <label>Modo de Saída</label>
+        <div class="option-group" onchange="renderizarSubOpcoes()"><label><input type="radio" name="modoSaida" value="Aérea" required> Aérea</label><label><input type="radio" name="modoSaida" value="Subterrânea"> Subterrânea</label><label><input type="radio" name="modoSaida" value="Ambas"> Ambas</label></div>
+        <div id="subOpcoesContainer" style="width: 100%; margin-top: 1rem;"></div>
+        <label>Evidências Fotográficas Gerais</label>
+        <input type="file" name="foto_geral_1" accept="image/*" required><input type="file" name="foto_geral_2" accept="image/*"><input type="file" name="foto_geral_3" accept="image/*">
+        <div class="btn-group"><button type="button" class="btn" onclick="proximaEtapa(2)">Voltar</button><button type="button" class="btn" onclick="proximaEtapa(4)">Próximo</button></div>
+      </div>
+      
+      <div id="etapa4" class="etapa">
+        <label>Caminho dos Cabos</label>
+        <div id="caminhosContainer" style="width: 100%; margin-top: 1rem;"></div>
+        <div class="btn-group"><button type="button" class="btn" onclick="proximaEtapa(3)">Voltar</button><button type="button" class="btn" onclick="proximaEtapa(5)">Revisar & Enviar</button></div>
+      </div>
+      
+      <div id="etapa5" class="etapa">
+        <h2>Revisão Final</h2>
+        <div id="resumo" style="width: 100%;"></div>
+        <div class="btn-group"><button type="button" class="btn" onclick="proximaEtapa(4)">Voltar</button><button type="submit" class="btn" id="btnEnviar">Confirmar e Enviar</button></div>
+        <div id="statusMessage" class="status-message"></div>
+      </div>
+    </form>
+  </div>
+  
+  <?!= HtmlService.createHtmlOutputFromFile('javascript').getContent(); ?>
+
+  <script>
+    const totalEtapas = 5;
+    const capacidadesFO = [12, 24, 36, 72, 144];
+    const subOpcoesAerea = ['Pontalete Galvanizado', 'Padrão'];
+    const subOpcoesSubterranea = ['Cx. de Passagem', 'Cx. Subterrânea', 'Duto Lateral'];
+    
+    function atualizarProgresso(etapa) {
+        const percent = etapa > 1 ? ((etapa - 1) / (totalEtapas - 1)) * 100 : 0;
+        document.getElementById('progressBar').style.width = percent + '%';
+        document.getElementById('progressText').textContent = `Etapa ${etapa} de ${totalEtapas}`;
+    }
+
+    function proximaEtapa(n) {
+      const atual = document.querySelector('.etapa.active');
+      if (!validarEtapa(atual)) return;
+      document.querySelectorAll('.etapa').forEach(e => e.classList.remove('active'));
+      document.getElementById('etapa' + n).classList.add('active');
+      window.scrollTo(0, 0);
+      atualizarProgresso(n);
+      if (n === totalEtapas) {
+        mostraResumo();
+        document.getElementById('btnEnviar').disabled = false;
+      }
+    }
+    
+    function renderizarCabos() {
+        const qtdCabos = document.querySelector('input[name="qtdCabos"]:checked')?.value || 0;
+        const container = document.getElementById('cabosContainer');
+        container.innerHTML = '';
+        for (let i = 1; i <= qtdCabos; i++) {
+            const caboDiv = document.createElement('div');
+            caboDiv.style.marginTop = '1rem';
+            caboDiv.innerHTML = `
+                <label style="font-weight: bold; text-align: left;">Detalhes do Cabo ${i}</label>
+                <input type="text" name="lt${i}" placeholder="LT (Lote)" required oninput="renderizarCaminhos()">
+                <select name="capacidade${i}" required>
+                    <option value="" disabled selected>Capacidade FO...</option>
+                    ${capacidadesFO.map(c => `<option value="${c}">${c}</option>`).join('')}
+                </select>
+                <label style="font-size: 1.1rem; margin-top: 1.5rem; text-align: left;">Foto do Cabo ${i}</label>
+                <input type="file" name="foto_cabo_${i}" accept="image/*">
+            `;
+            container.appendChild(caboDiv);
+        }
+        renderizarCaminhos();
+    }
+
+    function renderizarSubOpcoes() {
+        const modoSaida = document.querySelector('input[name="modoSaida"]:checked')?.value;
+        const container = document.getElementById('subOpcoesContainer');
+        container.innerHTML = '';
+        let opcoes = [];
+        if (modoSaida === 'Aérea') opcoes = subOpcoesAerea;
+        else if (modoSaida === 'Subterrânea') opcoes = subOpcoesSubterranea;
+        else if (modoSaida === 'Ambas') opcoes = [...subOpcoesAerea, ...subOpcoesSubterranea];
+
+        if (opcoes.length > 0) {
+            const subLabel = document.createElement('label');
+            subLabel.textContent = 'Selecione as sub-opções de Saída:';
+            subLabel.style.textAlign = 'left';
+            container.appendChild(subLabel);
+            const optionGroup = document.createElement('div');
+            optionGroup.className = 'option-group';
+            opcoes.forEach(opcao => {
+                const label = document.createElement('label');
+                label.innerHTML = `<input type="checkbox" name="subOpcoesSaida" value="${opcao}"> ${opcao}`;
+                optionGroup.appendChild(label);
+            });
+            container.appendChild(optionGroup);
+        }
+    }
+
+    function renderizarCaminhos() {
+        const qtdCabos = document.querySelector('input[name="qtdCabos"]:checked')?.value || 0;
+        const container = document.getElementById('caminhosContainer');
+        container.innerHTML = `<p class="info-aviso"><b>Aviso:</b> Para orientação espacial, considere estar de costas para o site e de frente para a rua.</p>`;
+        const caminhos = ['Esquerda da rua', 'Direita da rua', 'Para na caixa de abordagem'];
+        for (let i = 1; i <= qtdCabos; i++) {
+            const ltValue = document.querySelector(`input[name="lt${i}"]`)?.value.trim().toUpperCase() || `Cabo ${i}`;
+            const caminhoDiv = document.createElement('div');
+            caminhoDiv.style.marginTop = '1rem';
+            caminhoDiv.innerHTML = `<label style="font-weight: bold; text-align: left;">Caminho do Cabo ${i} (${ltValue})</label>`;
+            const optionGroup = document.createElement('div');
+            optionGroup.className = 'option-group';
+            caminhos.forEach(caminho => {
+                const label = document.createElement('label');
+                label.innerHTML = `<input type="radio" name="caminhoCabos${i}" value="${caminho}" required> ${caminho}`;
+                optionGroup.appendChild(label);
+            });
+            caminhoDiv.appendChild(optionGroup);
+            const fotoLabel = document.createElement('label');
+            fotoLabel.textContent = `Foto do Caminho (${ltValue})`;
+            fotoLabel.style.cssText = 'font-size: 1.1rem; margin-top: 1.5rem; text-align: left;';
+            caminhoDiv.appendChild(fotoLabel);
+            const fotoInput = document.createElement('input');
+            fotoInput.type = 'file';
+            fotoInput.name = `foto_caminho_${i}`;
+            fotoInput.accept = 'image/*';
+            caminhoDiv.appendChild(fotoInput);
+            container.appendChild(caminhoDiv);
+        }
+    }
+    
+    function mostraResumo() {
+      const form = new FormData(document.getElementById('vistoriaForm'));
+      let lines = [];
+      const labels = {'cidade':'Cidade','site':'Site','topologia':'Topologia Recebida','qtdCabos':'Qtd. de Cabos','modoSaida':'Modo de Saída'};
+      for (const [key, label] of Object.entries(labels)) {
+          if (form.has(key)) lines.push(`<p><b>${label}:</b> ${form.get(key)}</p>`);
+      }
+      if (form.getAll('subOpcoesSaida').length > 0) {
+          lines.push(`<p><b>Sub-Opções:</b> ${form.getAll('subOpcoesSaida').join(', ')}</p>`);
+      }
+      const qtdCabos = form.get('qtdCabos') || 0;
+      for (let i = 1; i <= qtdCabos; i++) {
+        lines.push(`<p><b>Cabo ${i} (LT/Capacidade):</b> ${form.get('lt'+i)} / ${form.get('capacidade'+i)}</p>`);
+        lines.push(`<p><b>Caminho Cabo ${i}:</b> ${form.get('caminhoCabos'+i)}</p>`);
+      }
+      const fotos = Array.from(document.querySelectorAll('input[type="file"]')).filter(inp => inp.files.length > 0);
+      if (fotos.length > 0) {
+        lines.push(`<p><b>Total de Fotos:</b> ${fotos.length}</p>`);
+      }
+      document.getElementById('resumo').innerHTML = lines.join('');
+    }
+    
+    window.addEventListener('load', () => {
+      atualizarProgresso(1);
+    });
+  </script>
+  
+  <div id="successOverlay" class="success-overlay">
+    <svg class="success-checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+      <circle cx="26" cy="26" r="25" fill="none" stroke="var(--green-success)" stroke-width="4"/>
+      <path fill="none" stroke="var(--green-success)" stroke-width="5" stroke-linecap="round" d="M14 27l8 8 16-16"/>
+    </svg>
+    <h1>Vistoria Enviada!</h1>
+    <p>Obrigado pela sua colaboração.</p>
+    <button class="btn" onclick="window.location.href = '<?= webAppUrl ?>'">Recomeçar</button>
+  </div>
+</body>
+</html>

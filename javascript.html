@@ -1,0 +1,125 @@
+<script>
+  function showSuccessScreen() {
+    const form = document.getElementById('vistoriaForm');
+    const successOverlay = document.getElementById('successOverlay');
+    if (form && successOverlay) {
+      form.style.display = 'none';
+      successOverlay.classList.add('visible');
+    }
+  }
+
+  function showStatus(message, type = '') {
+    const statusMessage = document.getElementById('statusMessage');
+    if (statusMessage) {
+      statusMessage.innerHTML = message;
+      statusMessage.className = 'status-message';
+      if (type) {
+        statusMessage.classList.add(type);
+      }
+    }
+  }
+
+  function validarEtapa(etapaElement) {
+    for (const campo of etapaElement.querySelectorAll('[required]')) {
+      if (campo.type === 'radio') {
+        const groupName = campo.name;
+        if (!etapaElement.querySelector(`input[name="${groupName}"]:checked`)) {
+          showStatus('Por favor, selecione uma opção.', 'error');
+          const radioGroup = campo.closest('div');
+          if (radioGroup) {
+            radioGroup.style.outline = '2px solid var(--red-error)';
+            setTimeout(() => {
+              radioGroup.style.outline = 'none';
+            }, 2000);
+          }
+          return false;
+        }
+      } else if (campo.type === 'file' && campo.files.length === 0) {
+        const fileGroupName = campo.name;
+        const allFilesInGroup = etapaElement.querySelectorAll(`input[name="${fileGroupName}"]`);
+        const isAnyFileSelected = Array.from(allFilesInGroup).some(input => input.files.length > 0);
+        if (!isAnyFileSelected) {
+          showStatus('Por favor, envie pelo menos uma foto.', 'error');
+          campo.reportValidity();
+          return false;
+        }
+      } else if (!campo.value) {
+        showStatus('Por favor, preencha todos os campos obrigatórios.', 'error');
+        campo.reportValidity();
+        return false;
+      }
+    }
+    showStatus('');
+    return true;
+  }
+
+  async function handleFormSubmit(e) {
+    e.preventDefault();
+    const btnEnviar = document.getElementById('btnEnviar');
+    btnEnviar.disabled = true;
+    showStatus('<div class="spinner"></div>A enviar dados...', 'loading');
+
+    const form = e.target;
+    const formData = new FormData(form);
+    const dados = {};
+
+    for (const key of new Set(formData.keys())) {
+      if (form.elements[key] && form.elements[key].type === 'file') {
+        continue;
+      }
+      const allValues = formData.getAll(key);
+      dados[key] = allValues.length > 1 ? allValues.join(', ') : allValues[0];
+    }
+
+    try {
+      dados.arquivos = await Promise.all(
+        Array.from(form.querySelectorAll('input[type="file"]'))
+        .filter(inp => inp.files.length > 0)
+        .map(async inp => {
+          const file = inp.files[0];
+          if (file.size > 5 * 1024 * 1024) {
+            throw new Error(`O ficheiro ${file.name} é maior que 5MB.`);
+          }
+          const base64 = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+          });
+          return {
+            filename: file.name,
+            mimeType: file.type,
+            base64
+          };
+        })
+      );
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          showSuccessScreen();
+        })
+        .withFailureHandler(err => {
+          showStatus('Erro ao enviar: ' + err.message, 'error');
+          btnEnviar.disabled = false;
+        })
+        .salvarVistoria(dados);
+
+    } catch (err) {
+      showStatus('Erro: ' + err.message, 'error');
+      btnEnviar.disabled = false;
+    }
+  }
+
+  function popularSelect(selectId, data, placeholder) {
+    const sel = document.getElementById(selectId);
+    sel.innerHTML = `<option value="" disabled selected>${placeholder}</option>`;
+    data.sort().forEach(item => sel.add(new Option(item, item)));
+  }
+
+  function populaTecnicos() {
+    if (typeof gestores !== 'undefined') {
+      const gestor = document.getElementById('gestorSelect').value;
+      popularSelect('tecnicoSelect', gestores[gestor] || [], 'Selecione o Técnico...');
+    }
+  }
+</script>

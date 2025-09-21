@@ -1,0 +1,141 @@
+<style>
+  /* --- Variáveis Globais de Estilo --- */
+  :root {
+    --vivo-purple: #660099;
+    --vivo-purple-light: #9900CC;
+    --background-color: #f0f4f8;
+    --text-color: #1e293b;
+    --border-color: #cbd5e1;
+    --shadow-light: rgba(0, 0, 0, 0.1);
+    --shadow-dark: rgba(0, 0, 0, 0.05);
+    --red-error: #ef4444;
+    --blue-loading-bg: #e0f2fe;
+    --blue-loading-text: #0c4a6e;
+    --green-success: #16a34a;
+    --green-success-bg: #dcfce7;
+    --green-success-text: #166534;
+    --red-error-bg: #fee2e2;
+    --red-error-text: #991b1b;
+  }
+
+  /* --- Reset e Configurações Globais --- */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; width: 100%; overflow-x: hidden; }
+  body {
+    background: var(--background-color);
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: var(--text-color);
+    padding: 1rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* --- Layout Principal dos Formulários --- */
+  .container {
+    width: 100%;
+    max-width: 800px;
+    background: #fff;
+    border-radius: 1.5rem;
+    box-shadow: 0 1.25rem 1.875rem -0.375rem var(--shadow-light), 0 0.5rem 0.75rem -0.25rem var(--shadow-dark);
+    padding: clamp(1.5rem, 5vw, 2.5rem) clamp(1rem, 4vw, 2rem);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin: 1rem 0;
+  }
+  h2 { font-size: clamp(2.3rem, 8vw, 3.2rem); font-weight: 700; margin-bottom: 2rem; color: var(--vivo-purple); }
+  form { width: 100%; display: flex; flex-direction: column; }
+
+  /* --- Barra de Progresso --- */
+  .progress-container { width: 100%; background-color: #e9ecef; border-radius: 1rem; margin-bottom: 2rem; position: relative; height: 2.5rem; overflow: hidden; }
+  .progress-bar { height: 100%; width: 0%; background: linear-gradient(135deg, var(--vivo-purple) 0%, var(--vivo-purple-light) 100%); transition: width 0.4s ease-in-out; }
+  .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-weight: 600; font-size: 1rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.4); }
+
+  /* --- Etapas do Formulário (ALTERAÇÃO APLICADA) --- */
+  form .etapa { display: none; width: 100%; flex-direction: column; align-items: center; }
+  form .etapa.active { display: flex; animation: fadeIn 0.4s ease-in-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+  
+  /* --- Estilos dos Campos (Labels, Inputs, Selects) - AUMENTADOS --- */
+  label { font-size: 1.8rem; color: var(--text-color); margin-top: 3rem; text-align: center; font-weight: 600; display: block; width: 100%; }
+  select, input[type="text"], input[type="file"], textarea {
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: 2.2rem;
+    font-size: 1.6rem;
+    border: 3px solid var(--vivo-purple);
+    border-radius: 1.8rem;
+    background-color: #fff;
+    color: var(--text-color);
+    text-align: center;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  select { 
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23333' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e"); 
+    background-repeat: no-repeat; 
+    background-position: right 2.2rem center; 
+    background-size: 1.5em; 
+    padding-right: 5rem; 
+  }
+  select:focus, input:focus, textarea:focus { outline: none; border-color: var(--vivo-purple-light); box-shadow: 0 0 0 4px rgba(153, 0, 204, 0.2); }
+  textarea { min-height: 18rem; text-align: left; }
+  
+  /* --- Botões - AUMENTADOS --- */
+  .btn-group { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; margin-top: auto; padding-top: 3rem; }
+  @media (min-width: 480px) { .btn-group { flex-direction: row; } }
+  button.btn, .btn { flex: 1; padding: 2.2rem 2.5rem; font-size: 1.6rem; font-weight: 700; color: #fff; background: linear-gradient(135deg, var(--vivo-purple) 0%, var(--vivo-purple-light) 100%); border: none; border-radius: 1.8rem; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+  button.btn:hover:not([disabled]) { transform: translateY(-4px); box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15); }
+  button.btn[disabled] { background: #999 !important; cursor: not-allowed; opacity: 0.7; }
+
+  /* --- Resumo e Mensagens de Status --- */
+  #resumo p { background: rgba(102,0,153,0.05); padding: 1.2rem; border-radius: 1rem; font-size: 1.2rem; color: var(--text-color); margin: 0.8rem 0; text-align: left; word-wrap: break-word; border-left: 6px solid var(--vivo-purple-light); }
+  #resumo p b { color: var(--vivo-purple); }
+  .status-message { display: none; margin-top: 1.5rem; font-size: 1.2rem; font-weight: 600; text-align: center; padding: 1.5rem; border-radius: 1rem; width: 100%; }
+  .status-message.loading { display: flex; align-items: center; justify-content: center; background-color: var(--blue-loading-bg); color: var(--blue-loading-text); }
+  .status-message.success { display: block; background-color: var(--green-success-bg); color: var(--green-success-text); }
+  .status-message.error { display: block; background-color: var(--red-error-bg); color: var(--red-error-text); }
+  .spinner { border: 5px solid rgba(0, 0, 0, 0.1); width: 2.2rem; height: 2.2rem; border-radius: 50%; border-left-color: var(--vivo-purple); animation: spin 1s ease infinite; margin-right: 1rem; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  /* --- TELA DE SUCESSO --- */
+  .success-overlay {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--background-color);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    z-index: 1000;
+    padding: 2rem;
+  }
+  .success-overlay.visible { display: flex; opacity: 1; }
+  .success-checkmark {
+    width: 120px;
+    height: 120px;
+    animation: scaleUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+  @keyframes scaleUp { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .success-overlay h1 { font-size: clamp(2rem, 8vw, 3rem); color: var(--green-success-text); margin: 2rem 0 1rem 0; }
+  .success-overlay p { font-size: 1.5rem; color: var(--text-color); margin-bottom: 3.5rem; max-width: 400px; }
+  
+  /* CORREÇÃO: Ajusta o botão "Recomeçar" para ser proporcional. */
+  .success-overlay .btn {
+    width: 100%;
+    max-width: 350px;
+    padding: 1.8rem;
+    font-size: 1.4rem;
+  }
+</style>
